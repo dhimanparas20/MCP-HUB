@@ -186,7 +186,9 @@ async def create_table(
     description="Insert one or more rows into a table.",
     tags={"enabled"},
 )
-async def insert_rows(data: dict[str, Any] | list[dict[str, Any]], table_name: str) -> dict[str, Any]:
+async def insert_rows(
+    data: dict[str, Any] | list[dict[str, Any]], table_name: str
+) -> dict[str, Any]:
     """Insert rows into a table.
 
     Args:
@@ -291,7 +293,9 @@ async def select_one_row(
     description="Update rows in a table using data and where predicates.",
     tags={"enabled"},
 )
-async def update_rows(table_name: str, data: dict[str, Any], where: dict[str, Any] | None = None) -> dict[str, Any]:
+async def update_rows(
+    table_name: str, data: dict[str, Any], where: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Update rows matching WHERE criteria.
 
     Args:
@@ -304,7 +308,9 @@ async def update_rows(table_name: str, data: dict[str, Any], where: dict[str, An
     """
     method_name = "update_rows"
     try:
-        rowcount = sqlite_db.update(table_name=table_name, data=data, where=where if where else {})
+        rowcount = sqlite_db.update(
+            table_name=table_name, data=data, where=where if where else {}
+        )
         _commit(method_name)
         _log(method_name, f"updated {rowcount} row(s) in {table_name!r}")
         return {"ok": True, "rows_updated": rowcount}
@@ -319,7 +325,9 @@ async def update_rows(table_name: str, data: dict[str, Any], where: dict[str, An
     description="Delete rows from a table using where predicates.",
     tags={"enabled"},
 )
-async def delete_rows(table_name: str, where: dict[str, Any] | None = None) -> dict[str, Any]:
+async def delete_rows(
+    table_name: str, where: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Delete rows matching WHERE criteria.
 
     Args:
@@ -385,7 +393,9 @@ async def upsert_row(
     description="Count rows in a table with optional where predicates.",
     tags={"enabled"},
 )
-async def count_rows(table_name: str, where: dict[str, Any] | None = None) -> dict[str, int]:
+async def count_rows(
+    table_name: str, where: dict[str, Any] | None = None
+) -> dict[str, int]:
     """Count rows in a table.
 
     Args:
@@ -499,10 +509,160 @@ async def rename_table(table_name: str, new_table_name: str) -> dict[str, Any]:
         return {"ok": False, "error": str(error), "table": table_name}
 
 
+@mcp.tool(
+    name="execute_sql",
+    description="Execute raw SQL query against the database.",
+    tags={"enabled"},
+)
+async def execute_sql(sql: str, params: list | None = None) -> dict[str, Any]:
+    """Execute raw SQL query.
+
+    Args:
+        sql (str): SQL query to execute.
+        params (list | None): Optional query parameters.
+
+    Returns:
+        dict[str, Any]: Query results or affected row count.
+    """
+    method_name = "execute_sql"
+    try:
+        cursor = sqlite_db.connection.cursor()
+        if params:
+            cursor.execute(sql, params)
+        else:
+            cursor.execute(sql)
+
+        if sql.strip().upper().startswith(("SELECT", "PRAGMA", "EXPLAIN")):
+            columns = (
+                [desc[0] for desc in cursor.description] if cursor.description else []
+            )
+            rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+            _log(method_name, f"executed query, returned {len(rows)} rows")
+            return {
+                "ok": True,
+                "columns": columns,
+                "rows": rows,
+                "row_count": len(rows),
+            }
+        else:
+            rowcount = cursor.rowcount
+            _commit(method_name)
+            _log(method_name, f"executed statement, affected {rowcount} rows")
+            return {"ok": True, "affected_rows": rowcount}
+    except Exception as error:
+        _rollback(method_name, error)
+        _log(method_name, f"error executing SQL: {error}", "ERROR")
+        return {"ok": False, "error": str(error)}
+
+
+@mcp.tool(
+    name="create_index",
+    description="Create an index on a table column.",
+    tags={"enabled"},
+)
+async def create_index(
+    index_name: str,
+    table_name: str,
+    columns: list[str],
+    unique: bool = False,
+    if_not_exists: bool = True,
+) -> dict[str, Any]:
+    """Create an index on a table.
+
+    Args:
+        index_name (str): Name for the index.
+        table_name (str): Table to index.
+        columns (list[str]): Columns to include in the index.
+        unique (bool): Whether to create a unique index.
+        if_not_exists (bool): Use IF NOT EXISTS clause.
+
+    Returns:
+        dict[str, Any]: Operation status.
+    """
+    method_name = "create_index"
+    try:
+        unique_str = "UNIQUE " if unique else ""
+        if_not_exists_str = "IF NOT EXISTS " if if_not_exists else ""
+        columns_str = ", ".join(columns)
+        sql = f"CREATE {unique_str}INDEX {if_not_exists_str}{index_name} ON {table_name} ({columns_str})"
+
+        cursor = sqlite_db.connection.cursor()
+        cursor.execute(sql)
+        _commit(method_name)
+
+        _log(method_name, f"created index {index_name} on {table_name}({columns_str})")
+        return {
+            "ok": True,
+            "index": index_name,
+            "table": table_name,
+            "columns": columns,
+        }
+    except Exception as error:
+        _rollback(method_name, error)
+        _log(method_name, f"error creating index: {error}", "ERROR")
+        return {"ok": False, "error": str(error)}
+
+
+@mcp.tool(
+    name="list_indexes",
+    description="List all indexes in the database.",
+    tags={"enabled"},
+)
+async def list_indexes() -> dict[str, Any]:
+    """List all indexes in the database.
+
+    Returns:
+        dict[str, Any]: List of indexes with details.
+    """
+    method_name = "list_indexes"
+    try:
+        cursor = sqlite_db.connection.cursor()
+        cursor.execute("""
+            SELECT name, tbl_name, sql 
+            FROM sqlite_master 
+            WHERE type = 'index' AND sql IS NOT NULL
+            ORDER BY tbl_name, name
+        """)
+        indexes = [
+            {"name": row[0], "table": row[1], "sql": row[2]}
+            for row in cursor.fetchall()
+        ]
+
+        _log(method_name, f"listed {len(indexes)} indexes")
+        return {"ok": True, "indexes": indexes, "count": len(indexes)}
+    except Exception as error:
+        _log(method_name, f"error listing indexes: {error}", "ERROR")
+        return {"ok": False, "error": str(error)}
+
+
+@mcp.tool(
+    name="vacuum_database",
+    description="Optimize the database by reclaiming space.",
+    tags={"enabled"},
+)
+async def vacuum_database() -> dict[str, Any]:
+    """Vacuum the database to optimize storage.
+
+    Returns:
+        dict[str, Any]: Operation status.
+    """
+    method_name = "vacuum_database"
+    try:
+        cursor = sqlite_db.connection.cursor()
+        cursor.execute("VACUUM")
+        _log(method_name, "database vacuumed successfully")
+        return {"ok": True, "message": "Database vacuumed successfully"}
+    except Exception as error:
+        _log(method_name, f"error vacuuming: {error}", "ERROR")
+        return {"ok": False, "error": str(error)}
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="SQLite FastMCP server")
     parser.add_argument("--host", default=os.getenv("FASTMCP_HOST", "127.0.0.1"))
-    parser.add_argument("--port", type=int, default=int(os.getenv("FASTMCP_PORT", "8000")))
+    parser.add_argument(
+        "--port", type=int, default=int(os.getenv("FASTMCP_PORT", "8000"))
+    )
     parser.add_argument(
         "--path",
         default=os.getenv("FASTMCP_STREAMABLE_HTTP_PATH", "/mcp"),
@@ -525,5 +685,5 @@ if __name__ == "__main__":
         port=args.port,
         path=args.path,
         log_level="INFO",
-        stateless_http=True,
+        stateless_http=False,
     )

@@ -70,7 +70,7 @@ class MCPAgentModule:
             server_tools = await server_client.get_tools()
             tools_by_server[server_name] = [t.name for t in server_tools]
         for server, tool_names in tools_by_server.items():
-            print("-" * 50)
+            print("-" * 80)
             logger.info(f"Server '{server}' tools: {tool_names}")
 
         self.llm = create_llm(
