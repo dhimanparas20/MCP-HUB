@@ -5,7 +5,7 @@ from typing import Optional, Literal
 
 from modules.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger("Agent Utils")
 
 
 @dataclass(frozen=True)

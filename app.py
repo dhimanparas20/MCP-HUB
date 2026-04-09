@@ -28,11 +28,11 @@ from modules import (
     GENERAL_PROMPT,
 )
 
-logger = get_logger("MCP_AGENT_MOD")
+logger = get_logger(name="APP", show_pid=False, show_time=True)
 load_dotenv()
 
 CHAT_HISTORY_FILE = Path(__file__).parent / "chat_history.json"
-MAX_HISTORY = 20
+MAX_HISTORY = 30
 
 
 def _create_message(role: str, content: str):
@@ -60,6 +60,7 @@ class MCPAgentModule:
         max_tokens: Optional[int] = 1500,
         system_message: str = LOCAL_MCP_SQLITE3_PROMPT,
     ) -> None:
+        logger.info("Initializing MCPAgentModule")
         self.system_msg = SystemMessage(content=system_message)
         self.mcp_client = MultiServerMCPClient(MCP_TOOLS)
         self.tools = await self.mcp_client.get_tools()

@@ -5,30 +5,35 @@ import colorlog
 
 
 class WorkerIDFilter(logging.Filter):
+    def __init__(self, show_pid: bool = False):
+        super().__init__()
+        self.show_pid = show_pid
+
     def filter(self, record: logging.LogRecord) -> bool:
-        worker = os.getenv("UVICORN_WORKER")
-        if worker:
-            record.worker_id = f"-{worker}"
+        if self.show_pid:
+            worker = os.getenv("UVICORN_WORKER")
+            if worker:
+                record.worker_id = f"-{worker}"
+            else:
+                record.worker_id = f"-{os.getpid()}"
         else:
-            record.worker_id = f"-{os.getpid()}"
+            record.worker_id = ""
         return True
 
 
 class CustomColoredFormatter(colorlog.ColoredFormatter):
     def format(self, record):
-        # Create a padded field with the level name and padding outside the brackets
         record.levelname_bracket = f"[{record.levelname}]"
-        # Calculate padding needed (8 is your desired width)
         pad = 3 - len(record.levelname)
         record.levelname_pad = " " * pad if pad > 0 else ""
         return super().format(record)
 
 
-def get_logger(name, show_time: bool = False):
+def get_logger(name, show_time: bool = False, show_pid: bool = False):
     logger = logging.getLogger(name)
     if not logger.handlers:
         handler = colorlog.StreamHandler()
-        worker_filter = WorkerIDFilter()
+        worker_filter = WorkerIDFilter(show_pid=show_pid)
         handler.addFilter(worker_filter)
         if show_time:
             formatter = CustomColoredFormatter(
