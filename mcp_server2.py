@@ -491,4 +491,14 @@ def path_info(path: str) -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http", host="127.0.0.1", port=8005, stateless_http=True)
+    try:
+        mcp.run(transport="streamable-http", host="127.0.0.1", port=8005, stateless_http=True)
+    except KeyboardInterrupt:
+        logger.info("Server stopped by user")
+    except Exception as e:
+        import traceback
+        import sys
+
+        traceback.print_exc()
+        logger.error(f"Error starting server: {e}")
+        sys.exit(1)

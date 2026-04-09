@@ -83,9 +83,7 @@ async def table_info(table_name: str) -> dict[str, Any] | None:
     """
     info = sqlite_db.get_table_info(table_name)
     payload = asdict(info) if info else None
-    logger.info(
-        f"[table_info] loaded schema for table={table_name!r}, exists={payload is not None}"
-    )
+    logger.info(f"[table_info] loaded schema for table={table_name!r}, exists={payload is not None}")
     return payload
 
 
@@ -143,9 +141,7 @@ async def create_table(
     description="Insert one or more rows into a table.",
     tags={"enabled"},
 )
-async def insert_rows(
-    data: dict[str, Any] | list[dict[str, Any]], table_name: str
-) -> dict[str, Any]:
+async def insert_rows(data: dict[str, Any] | list[dict[str, Any]], table_name: str) -> dict[str, Any]:
     """Insert rows into a table.
 
     Args:
@@ -159,9 +155,7 @@ async def insert_rows(
         result = sqlite_db.insert(table_name, data)
         _commit()
         if isinstance(result, list):
-            logger.info(
-                f"[insert_rows] inserted {len(result)} row(s) into {table_name!r}"
-            )
+            logger.info(f"[insert_rows] inserted {len(result)} row(s) into {table_name!r}")
             return {"rows_inserted": len(result), "row_ids": result}
         logger.info(f"[insert_rows] inserted 1 row into {table_name!r}")
         return {"rows_inserted": 1, "row_id": result}
@@ -240,9 +234,7 @@ async def select_one_row(
         where=where,
         order_by=order_by,
     )
-    logger.info(
-        f"[select_one_row] selected one from {table_name!r}, found={row is not None}"
-    )
+    logger.info(f"[select_one_row] selected one from {table_name!r}, found={row is not None}")
     return row
 
 
@@ -251,9 +243,7 @@ async def select_one_row(
     description="Update rows in a table using data and where predicates.",
     tags={"enabled"},
 )
-async def update_rows(
-    table_name: str, data: dict[str, Any], where: dict[str, Any] | None = None
-) -> dict[str, Any]:
+async def update_rows(table_name: str, data: dict[str, Any], where: dict[str, Any] | None = None) -> dict[str, Any]:
     """Update rows matching WHERE criteria.
 
     Args:
@@ -265,9 +255,7 @@ async def update_rows(
         dict[str, Any]: Number of rows updated.
     """
     try:
-        rowcount = sqlite_db.update(
-            table_name=table_name, data=data, where=where if where else {}
-        )
+        rowcount = sqlite_db.update(table_name=table_name, data=data, where=where if where else {})
         _commit()
         logger.info(f"[update_rows] updated {rowcount} row(s) in {table_name!r}")
         return {"ok": True, "rows_updated": rowcount}
@@ -282,9 +270,7 @@ async def update_rows(
     description="Delete rows from a table using where predicates.",
     tags={"enabled"},
 )
-async def delete_rows(
-    table_name: str, where: dict[str, Any] | None = None
-) -> dict[str, Any]:
+async def delete_rows(table_name: str, where: dict[str, Any] | None = None) -> dict[str, Any]:
     """Delete rows matching WHERE criteria.
 
     Args:
@@ -348,9 +334,7 @@ async def upsert_row(
     description="Count rows in a table with optional where predicates.",
     tags={"enabled"},
 )
-async def count_rows(
-    table_name: str, where: dict[str, Any] | None = None
-) -> dict[str, int]:
+async def count_rows(table_name: str, where: dict[str, Any] | None = None) -> dict[str, int]:
     """Count rows in a table.
 
     Args:
@@ -451,9 +435,7 @@ async def rename_table(table_name: str, new_table_name: str) -> dict[str, Any]:
         cursor = sqlite_db.connection.cursor()
         cursor.execute(f"ALTER TABLE {table_name} RENAME TO {new_table_name}")
         _commit()
-        logger.info(
-            f"[rename_table] renamed table {table_name!r} to {new_table_name!r}"
-        )
+        logger.info(f"[rename_table] renamed table {table_name!r} to {new_table_name!r}")
         return {"ok": True, "old_name": table_name, "new_name": new_table_name}
     except Exception as error:
         _rollback(error)
@@ -484,9 +466,7 @@ async def execute_sql(sql: str, params: list | None = None) -> dict[str, Any]:
             cursor.execute(sql)
 
         if sql.strip().upper().startswith(("SELECT", "PRAGMA", "EXPLAIN")):
-            columns = (
-                [desc[0] for desc in cursor.description] if cursor.description else []
-            )
+            columns = [desc[0] for desc in cursor.description] if cursor.description else []
             rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
             logger.info(f"[execute_sql] executed query, returned {len(rows)} rows")
             return {
@@ -540,9 +520,7 @@ async def create_index(
         cursor.execute(sql)
         _commit()
 
-        logger.info(
-            f"[create_index] created index {index_name} on {table_name}({columns_str})"
-        )
+        logger.info(f"[create_index] created index {index_name} on {table_name}({columns_str})")
         return {
             "ok": True,
             "index": index_name,
@@ -574,10 +552,7 @@ async def list_indexes() -> dict[str, Any]:
             WHERE type = 'index' AND sql IS NOT NULL
             ORDER BY tbl_name, name
         """)
-        indexes = [
-            {"name": row[0], "table": row[1], "sql": row[2]}
-            for row in cursor.fetchall()
-        ]
+        indexes = [{"name": row[0], "table": row[1], "sql": row[2]} for row in cursor.fetchall()]
 
         logger.info(f"[list_indexes] listed {len(indexes)} indexes")
         return {"ok": True, "indexes": indexes, "count": len(indexes)}
@@ -610,9 +585,7 @@ async def vacuum_database() -> dict[str, Any]:
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="SQLite FastMCP server")
     parser.add_argument("--host", default=os.getenv("FASTMCP_HOST", "127.0.0.1"))
-    parser.add_argument(
-        "--port", type=int, default=int(os.getenv("FASTMCP_PORT", "8000"))
-    )
+    parser.add_argument("--port", type=int, default=int(os.getenv("FASTMCP_PORT", "8000")))
     parser.add_argument(
         "--path",
         default=os.getenv("FASTMCP_STREAMABLE_HTTP_PATH", "/mcp"),
@@ -627,13 +600,23 @@ def _parse_args() -> argparse.Namespace:
 
 
 if __name__ == "__main__":
-    args = _parse_args()
-    _set_db_path(args.db_path)
-    mcp.run(
-        transport="streamable-http",
-        host=args.host,
-        port=args.port,
-        path=args.path,
-        log_level="INFO",
-        stateless_http=False,
-    )
+    try:
+        args = _parse_args()
+        _set_db_path(args.db_path)
+        mcp.run(
+            transport="streamable-http",
+            host=args.host,
+            port=args.port,
+            path=args.path,
+            log_level="INFO",
+            stateless_http=False,
+        )
+    except KeyboardInterrupt:
+        logger.info("Server stopped by user")
+    except Exception as e:
+        import traceback
+        import sys
+
+        traceback.print_exc()
+        logger.error(f"Error starting server: {e}")
+        sys.exit(1)
