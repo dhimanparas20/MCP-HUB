@@ -35,7 +35,9 @@ def safe(path: str) -> str:
     description="List contents of a directory with optional filtering.",
     tags={"enabled"},
 )
-def list_directory(path: str = ".", pattern: str | None = None, include_hidden: bool = False) -> dict[str, Any]:
+def list_directory(
+    path: str = ".", pattern: str | None = None, include_hidden: bool = False
+) -> dict[str, Any]:
     """List contents of a directory.
 
     Args:
@@ -195,7 +197,9 @@ def write_file(path: str, content: str, create_dirs: bool = True) -> dict[str, A
     description="Create a new file with optional content.",
     tags={"enabled"},
 )
-def create_file(path: str, content: str = "", create_dirs: bool = True) -> dict[str, Any]:
+def create_file(
+    path: str, content: str = "", create_dirs: bool = True
+) -> dict[str, Any]:
     """Create a new file with optional content.
 
     Args:
@@ -212,7 +216,9 @@ def create_file(path: str, content: str = "", create_dirs: bool = True) -> dict[
         os.makedirs(os.path.dirname(full), exist_ok=True)
     else:
         if not os.path.exists(os.path.dirname(full)):
-            logger.error(f"[create_file] Parent directory does not exist: {os.path.dirname(path)}")
+            logger.error(
+                f"[create_file] Parent directory does not exist: {os.path.dirname(path)}"
+            )
             return {
                 "ok": False,
                 "error": f"Parent directory does not exist: {os.path.dirname(path)}",
@@ -303,6 +309,41 @@ def move_file(source: str, destination: str, overwrite: bool = False) -> dict[st
 
 
 @mcp.tool(
+    name="rename",
+    description="Rename a file or directory.",
+    tags={"enabled"},
+)
+def rename(source: str, new_name: str) -> dict[str, Any]:
+    """Rename a file or directory.
+
+    Args:
+        source: Source file or directory path.
+        new_name: New name for the file or directory.
+
+    Returns:
+        dict: Operation status with old and new paths.
+    """
+    src = safe(source)
+    parent_dir = os.path.dirname(src)
+    dst = os.path.join(parent_dir, new_name)
+    dst = safe(dst)
+
+    if not os.path.exists(src):
+        logger.error(f"[rename] Source not found: {source}")
+        return {"ok": False, "error": f"Source not found: {source}"}
+
+    if os.path.exists(dst):
+        logger.error(f"[rename] Destination already exists: {new_name}")
+        return {"ok": False, "error": f"Destination already exists: {new_name}"}
+
+    os.rename(src, dst)
+    old_path = source
+    new_path = os.path.join(os.path.dirname(source), new_name)
+    logger.info(f"[rename] Renamed: {old_path} -> {new_path}")
+    return {"ok": True, "old_path": old_path, "new_path": new_path}
+
+
+@mcp.tool(
     name="delete_file",
     description="Delete a file or directory.",
     tags={"enabled"},
@@ -376,7 +417,10 @@ def search_files(root: str, pattern: str, max_results: int = 100) -> dict[str, A
 
     root_path = Path(root_full)
     matches = list(root_path.glob(pattern))[:max_results]
-    results = [{"path": os.path.relpath(m, ROOT), "is_file": m.is_file(), "is_dir": m.is_dir()} for m in matches]
+    results = [
+        {"path": os.path.relpath(m, ROOT), "is_file": m.is_file(), "is_dir": m.is_dir()}
+        for m in matches
+    ]
 
     logger.info(f"[search_files] Found {len(results)} matches for pattern '{pattern}'")
     return {"ok": True, "pattern": pattern, "results": results, "count": len(results)}
@@ -555,7 +599,9 @@ def get_pwd() -> dict[str, Any]:
     description="Display directory tree structure recursively.",
     tags={"enabled"},
 )
-def tree(path: str = ".", max_depth: int = 3, include_hidden: bool = False) -> dict[str, Any]:
+def tree(
+    path: str = ".", max_depth: int = 3, include_hidden: bool = False
+) -> dict[str, Any]:
     """Display directory tree structure.
 
     Args:
@@ -597,7 +643,9 @@ def tree(path: str = ".", max_depth: int = 3, include_hidden: bool = False) -> d
         except PermissionError:
             pass
 
-        return sorted(items, key=lambda x: (not x.get("type") == "directory", x["name"]))
+        return sorted(
+            items, key=lambda x: (not x.get("type") == "directory", x["name"])
+        )
 
     tree_data = {
         "path": path,

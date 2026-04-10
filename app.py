@@ -221,6 +221,7 @@ class MCPAgentModule:
 
 
 async def main():
+    os.system("clear")
     agent = MCPAgentModule()
     await agent.init()
 
