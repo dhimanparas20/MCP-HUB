@@ -36,11 +36,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Adding Aliases
 RUN echo 'alias ipython="uv run ipython"' >> /root/.bashrc
 
-# Copy the entire application code into the container
-COPY . .
-
-# Install the project itself (deps already cached from above)
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-editable
+## Copy the entire application code into the container
+#COPY . .
+#
+## Install the project itself (deps already cached from above)
+#RUN --mount=type=cache,target=/root/.cache/uv \
+#    uv sync --frozen --no-dev --no-editable
 
 EXPOSE 8001 8000 8005 8010

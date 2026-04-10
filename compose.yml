@@ -87,6 +87,7 @@ services:
     volumes:
       - ./modules:/app/modules
       - ./datastore:/app/datastore
+      - ./mcps:/app/mcps
       - ./templates:/app/templates
       - ./tasks:/app/tasks
       - ./app.py:/app/app.py
