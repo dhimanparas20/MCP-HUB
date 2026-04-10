@@ -5,15 +5,15 @@ load_dotenv()
 
 MCP_TOOLS = {
     "sqlite-local": {
-        "url": os.getenv("DEFAULT_MCP_SERVER_URL", "http://127.0.0.1:8000/mcp/"),
+        "url": "http://sql_mcp:8000/mcp/",
         "transport": "streamable-http",
     },
     "custom-fs": {
-        "url": "http://127.0.0.1:8005/mcp",
+        "url": "http://fs_mcp:8005/mcp",
         "transport": "streamable-http",
     },
     "downloader": {
-        "url": "http://127.0.0.1:8010/mcp",
+        "url": "http://downloader_mcp:8010/mcp",
         "transport": "streamable-http",
     },
     "ddg-search": {
@@ -29,11 +29,6 @@ MCP_TOOLS = {
         "command": "uv",
         "transport": "stdio",
         "args": ["run", "mcp-server-fetch"],
-    },
-    "git": {
-        "command": "uv",
-        "transport": "stdio",
-        "args": ["run", "mcp-server-git"],
     },
     "time": {
         "command": "uv",

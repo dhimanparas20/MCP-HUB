@@ -1,259 +1,165 @@
-import asyncio
 import json
-import os
+from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
-from typing import Literal, Optional
+from typing import List, Optional
 
+import uvicorn
 from dotenv import load_dotenv
-from langchain.agents import create_agent
-from langchain.agents.structured_output import ToolStrategy
-from langchain_core.callbacks import StdOutCallbackHandler
-from langchain_core.messages import (
-    SystemMessage,
-    ToolMessage,
-    HumanMessage,
-    AIMessage,
-    messages_to_dict,
-    messages_from_dict,
-)
-from langchain_mcp_adapters.client import MultiServerMCPClient
-from mcp.client.streamable_http import streamable_http_client
-from rich import print
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
-from mcps import MCP_TOOLS
-from modules import (
-    create_llm,
-    get_logger,
-    GENERAL_PROMPT,
-)
-from modules.tools import get_vectorless_tools
+from modules import get_logger
+from modules.agent_mod import MCPAgentModule
 
-logger = get_logger(name="APP", show_pid=False, show_time=True)
 load_dotenv()
-
-CHAT_HISTORY_FILE = Path(__file__).parent / "./datastore/chat_history.json"
-MAX_HISTORY = 30
+logger = get_logger(name="FastAPI", show_pid=False, show_time=True)
 
 
-def _create_message(role: str, content: str):
-    if role == "user":
-        return HumanMessage(content=content)
-    elif role == "assistant":
-        return AIMessage(content=content)
-    return HumanMessage(content=content)
-
-
-class MCPAgentModule:
-    def __init__(self):
-        self.tools = None
-        self.vectorless_tools = None
-        self.all_tools = None
-        self.llm = None
-        self.agent = None
-        self.mcp_client = None
-        self.system_msg = None
-        self.chat_history = []
-
-    async def init(
-        self,
-        model_provider: Literal["openai", "google", "openrouter", "groq"] = os.getenv("MODEL_PROVIDER"),
-        model_name: str = os.getenv("MODEL"),
-        model_temperature: Optional[float] = os.getenv("MODEL_TEMPERATURE"),
-        max_tokens: Optional[int] = os.getenv("MAX_TOKENS"),
-        system_message: str = GENERAL_PROMPT,
-    ) -> None:
-        logger.info("Initializing MCPAgentModule")
-        self.system_msg = SystemMessage(content=system_message)
-        self.mcp_client = MultiServerMCPClient(MCP_TOOLS)
-        self.tools = await self.mcp_client.get_tools()
-        self.vectorless_tools = get_vectorless_tools()
-        self.all_tools = self.tools + self.vectorless_tools
-        logger.info(f"Loaded {len(self.tools)} MCP tools and {len(self.vectorless_tools)} vectorless tools")
-
-        self.llm = create_llm(
-            model_provider=model_provider,
-            model_name=model_name,
-            model_temperature=model_temperature,
-            max_tokens=max_tokens,
-        )
-
-        self.agent = create_agent(
-            model=self.llm,
-            tools=self.all_tools,
-            # system_prompt=system_message
-        )
-        self._load_history()
-
-    # --- History Management ---
-
-    def _load_history(self) -> None:
-        if CHAT_HISTORY_FILE.exists():
-            try:
-                data = CHAT_HISTORY_FILE.read_text()
-                if data.strip():
-                    history_data = json.loads(data)
-                    self.chat_history = []
-                    for item in history_data:
-                        role = item.get("type", "human")
-                        content = item.get("data", {}).get("content", "")
-                        self.chat_history.append(_create_message(role, content))
-                    logger.info(f"Loaded {len(self.chat_history)} messages from history")
-            except Exception as e:
-                logger.warning(f"Could not load chat history: {e}")
-                self.chat_history = []
-
-    def _save_history(self) -> None:
-        try:
-            history_list = []
-            for msg in self.chat_history[-MAX_HISTORY:]:
-                role = "human" if isinstance(msg, HumanMessage) else "ai"
-                history_list.append({"type": role, "data": {"content": msg.content}})
-            import json
-
-            CHAT_HISTORY_FILE.write_text(json.dumps(history_list, indent=2))
-        except Exception as e:
-            logger.warning(f"Could not save chat history: {e}")
-
-    def _clear_history(self) -> None:
-        self.chat_history = []
-        if CHAT_HISTORY_FILE.exists():
-            CHAT_HISTORY_FILE.unlink()
-        logger.info("Chat history cleared")
-
-    # ---  Agent Invocation ---
-
-    async def invoke_agent(self, question: str):
-        """
-        Prints the response from the agent.
-        Args:
-            question:
-
-        Returns:
-
-        """
-        if self.agent is None:
-            logger.info("Initializing agent...")
-            await self.init()
-            self._load_history()
-
-        human_msg = HumanMessage(content=question)
-
-        messages = [self.system_msg] + self.chat_history + [human_msg]
-
-        inputs = {"messages": messages}
-
-        try:
-            agent_response = await self.agent.ainvoke(inputs)
-            answer = agent_response["messages"][-1]
-            self.chat_history.append(human_msg)
-            if isinstance(answer, AIMessage):
-                self.chat_history.append(answer)
-            else:
-                self.chat_history.append(
-                    AIMessage(content=answer.content if hasattr(answer, "content") else str(answer))
-                )
-            if len(self.chat_history) > MAX_HISTORY:
-                self.chat_history = self.chat_history[-MAX_HISTORY:]
-            self._save_history()
-
-            return answer
-
-        except Exception as e:
-            logger.error(f"❌ Agent error: {e}")
-            return {"Server Error": {"message": "Failed to invoke agent"}}
-
-    async def agent_stream(self, question: str):
-        """Stream agent response with 3 phases: thinking, live stream, full output."""
-        if self.agent is None:
-            await self.init()
-            self._load_history()
-
-        human_msg = HumanMessage(content=question)
-        messages = [self.system_msg] + self.chat_history + [human_msg]
-
-        inputs = {"messages": messages}
-
-        tool_responses = []
-        reasoning_accumulated = ""
-        full_response = ""
-
-        async for token, metadata in self.agent.astream(
-            inputs,
-            stream_mode="messages",
-        ):
-            for content in token.content_blocks:
-                if isinstance(token, ToolMessage):
-                    tool_responses.append(token.content)
-                    continue
-
-                if content["type"] == "tool_call_chunk":
-                    pass
-
-                if content["type"] == "reasoning":
-                    reasoning_text = content["reasoning"]
-                    reasoning_accumulated += reasoning_text
-
-                if content["type"] == "text":
-                    response_text = content["text"]
-                    full_response += response_text
-
-        marker = "Returning structured response:"
-        if marker in full_response:
-            full_response = full_response.split(marker, 1)[-1].strip()
-            if "answer=" in full_response:
-                import re
-
-                match = re.search(r'answer="(.*?)"\s+sources=', full_response, re.DOTALL)
-                if match:
-                    full_response = match.group(1).strip()
-
-        answer_msg = HumanMessage(content=full_response.strip())
-        self.chat_history.append(human_msg)
-        self.chat_history.append(answer_msg)
-        if len(self.chat_history) > MAX_HISTORY:
-            self.chat_history = self.chat_history[-MAX_HISTORY:]
-        self._save_history()
-
-        print(
-            {
-                "type": "done",
-                "answer": full_response.strip(),
-                "full_reasoning": reasoning_accumulated,
-                "tool_responses": tool_responses,
-            }
-        )
-
-
-async def main():
-    os.system("clear")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global agent
+    logger.info("Starting MCP Hub server...")
     agent = MCPAgentModule()
+    logger.info("Initializing AI agent...")
     await agent.init()
-
-    try:
-        while True:
-            inp = input("\nEnter Your Query: ").strip()
-            if not inp:
-                continue
-            if inp in ["q", "quit", "exit"]:
-                logger.info("Exiting...")
-                break
-            try:
-                response = await agent.invoke_agent(question=inp)
-                if hasattr(response, "pretty_print"):
-                    response.pretty_print()
-                else:
-                    print(response)
-            except Exception as e:
-                logger.error(e)
-    finally:
+    logger.info("Agent ready!")
+    yield
+    logger.info("Shutting down MCP Hub server...")
+    if HISTORY_FILE.exists():
+        HISTORY_FILE.unlink()
+        logger.info("Chat history deleted")
+    if agent is not None:
         agent._clear_history()
 
 
-if __name__ == "__main__":
+app = FastAPI(title="MCP Hub API", version="1.0.0", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+SCRIPT_DIR = Path(__file__).parent
+TEMPLATES_DIR = SCRIPT_DIR / "templates"
+HISTORY_FILE = SCRIPT_DIR / "datastore" / "internal" / "api_chat_history.json"
+MAX_HISTORY = 30
+
+agent: Optional[MCPAgentModule] = None
+
+
+def _ensure_history_file() -> None:
+    HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if not HISTORY_FILE.exists():
+        HISTORY_FILE.write_text("[]")
+
+
+def _load_api_history() -> List[dict]:
+    _ensure_history_file()
     try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Interrupted by user")
+        data = HISTORY_FILE.read_text()
+        if data.strip():
+            return json.loads(data)
+    except Exception:
+        pass
+    return []
+
+
+def _save_api_history(history: List[dict]) -> None:
+    _ensure_history_file()
+    HISTORY_FILE.write_text(json.dumps(history[-MAX_HISTORY:], indent=2))
+
+
+class ChatRequest(BaseModel):
+    message: str
+
+
+class ChatResponse(BaseModel):
+    response: str
+    history: Optional[List[dict]] = None
+
+
+class HistoryItem(BaseModel):
+    question: str
+    answer: str
+    timestamp: Optional[str] = None
+
+
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    index_file = TEMPLATES_DIR / "index.html"
+    if index_file.exists():
+        return HTMLResponse(content=index_file.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>index.html not found</h1>", status_code=404)
+
+
+@app.get("/ping")
+async def ping():
+    return {
+        "status": "ok",
+        "message": "MCP Hub server is running",
+        "agent_ready": agent is not None,
+    }, 200
+
+
+@app.post("/api/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    try:
+        response = await agent.invoke_agent(question=request.message)
+
+        if hasattr(response, "content"):
+            answer = response.content
+        else:
+            answer = str(response)
+
+        _ensure_history_file()
+        history = _load_api_history()
+        history.append(
+            {
+                "question": request.message,
+                "answer": answer,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+        _save_api_history(history)
+
+        return ChatResponse(response=answer)
+
     except Exception as e:
-        logger.error(f"Error: {e}")
-        raise
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/history")
+async def get_history():
+    history = _load_api_history()
+    return {"history": history}
+
+
+@app.post("/api/clear")
+async def clear_history():
+    if HISTORY_FILE.exists():
+        HISTORY_FILE.unlink()
+
+    if agent is not None:
+        agent._clear_history()
+
+    return {"status": "ok", "message": "History cleared"}
+
+
+@app.get("/api/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "agent_initialized": agent is not None,
+        "history_count": len(_load_api_history()),
+    }
+
+
+# if __name__ == "__main__":
+#     uvicorn.run("app:app", host="0.0.0.0", port=8001, reload=True, log_level="info")

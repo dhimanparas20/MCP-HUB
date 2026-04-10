@@ -17,7 +17,7 @@ logger = get_logger("SQLITE")
 
 DEFAULT_DB_PATH = os.getenv(
     "SQLITE_MCP_DB_PATH",
-    str(Path(__file__).resolve().parent / "./datastore/sqlite_ops.db"),
+    str(Path(__file__).resolve().parent / "./datastore/internal/sqlite3.db"),
 )
 
 sqlite_db = SQLiteUtils(DEFAULT_DB_PATH)

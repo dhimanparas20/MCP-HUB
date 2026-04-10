@@ -15,15 +15,18 @@ x-common: &common
   volumes:
     - ./modules:/app/modules
     - ./datastore:/app/datastore
+    - ./templates:/app/templates
     - ./mcps:/app/mcps
+    - ./app.py:/app/app.py
 
 networks:
   caddy:
     driver: bridge
 
 services:
-  mcp1:
+  sql_mcp:
     <<: *common
+    container_name: sql_mcp
     command: ["uv", "run", "--frozen", "--no-sync", "python", "-m", "mcps.mcp_server"]
     ports:
       - "8000:8000"
@@ -34,8 +37,9 @@ services:
       retries: 5
       start_period: 20s
 
-  mcp2:
+  fs_mcp:
     <<: *common
+    container_name: fs_mcp
     command: ["uv", "run", "--frozen", "--no-sync", "python", "-m", "mcps.mcp_server2"]
     ports:
       - "8005:8005"
@@ -46,8 +50,9 @@ services:
       retries: 5
       start_period: 20s
 
-  mcp3:
+  downloader_mcp:
     <<: *common
+    container_name: downloader_mcp
     command: ["uv", "run", "--frozen", "--no-sync", "python", "-m", "mcps.mcp_server3"]
     ports:
       - "8010:8010"
@@ -57,3 +62,25 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+
+  app:
+    <<: *common
+    container_name: app
+    command: [ "uv", "run", "--frozen", "--no-sync", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8001", "--reload", "--proxy-headers", "--workers", "1", "--use-colors", "--log-level", "debug" ]
+    ports:
+      - "8001:8001"
+    depends_on:
+      sql_mcp:
+        condition: service_started
+      fs_mcp:
+        condition: service_started
+      downloader_mcp:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD-SHELL", "test ! -f /tmp/drain && curl -f http://localhost:8001/ping" ]
+      interval: 5m
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+      start_interval: 2s
+

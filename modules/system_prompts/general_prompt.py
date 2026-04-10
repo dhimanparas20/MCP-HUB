@@ -16,7 +16,6 @@ Available tools:
 
 Guidelines:
 - Use tools proactively to help answer questions
-- When displaying data or lists, use a tabular format with serial numbers (s.no)
 - Be concise and practical in your responses
 - When using pageindex tools, explain what you're doing and why
 - use index_files,index_urls to actually index files and urls but when need to query prefer pageindex tool over query_index
