@@ -20,13 +20,13 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from mcp.client.streamable_http import streamable_http_client
 from rich import print
 
+from mcps import MCP_TOOLS
 from modules import (
     create_llm,
-    LOCAL_MCP_SQLITE3_PROMPT,
     get_logger,
     GENERAL_PROMPT,
 )
-from mcps import MCP_TOOLS
+from modules.tools import get_vectorless_tools
 
 logger = get_logger(name="APP", show_pid=False, show_time=True)
 load_dotenv()
@@ -46,6 +46,8 @@ def _create_message(role: str, content: str):
 class MCPAgentModule:
     def __init__(self):
         self.tools = None
+        self.vectorless_tools = None
+        self.all_tools = None
         self.llm = None
         self.agent = None
         self.mcp_client = None
@@ -64,7 +66,9 @@ class MCPAgentModule:
         self.system_msg = SystemMessage(content=system_message)
         self.mcp_client = MultiServerMCPClient(MCP_TOOLS)
         self.tools = await self.mcp_client.get_tools()
-        logger.info(f"Loaded {len(self.tools)} tools")
+        self.vectorless_tools = get_vectorless_tools()
+        self.all_tools = self.tools + self.vectorless_tools
+        logger.info(f"Loaded {len(self.tools)} MCP tools and {len(self.vectorless_tools)} vectorless tools")
 
         self.llm = create_llm(
             model_provider=model_provider,
@@ -75,7 +79,7 @@ class MCPAgentModule:
 
         self.agent = create_agent(
             model=self.llm,
-            tools=self.tools,
+            tools=self.all_tools,
             # system_prompt=system_message
         )
         self._load_history()

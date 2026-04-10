@@ -1,8 +1,11 @@
-from os import getenv
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 MCP_TOOLS = {
     "sqlite-local": {
-        "url": getenv("DEFAULT_MCP_SERVER_URL", "http://127.0.0.1:8000/mcp/"),
+        "url": os.getenv("DEFAULT_MCP_SERVER_URL", "http://127.0.0.1:8000/mcp/"),
         "transport": "streamable-http",
     },
     "custom-fs": {
@@ -42,5 +45,10 @@ MCP_TOOLS = {
         "transport": "stdio",
         "args": ["run", "mcp-url-downloader", "--path", "/home/paras/Downloads/mcp_downloads"],
         "env": {"DEFAULT_OUTPUT_DIR": "/home/paras/Downloads/mcp_downloads"},
+    },
+    "pageindex": {
+        "transport": "http",
+        "url": "https://api.pageindex.ai/mcp",
+        "headers": {"Authorization": f"Bearer {os.getenv("PAGE_INDEX_API_KEY")}"},
     },
 }
