@@ -584,7 +584,7 @@ async def vacuum_database() -> dict[str, Any]:
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="SQLite FastMCP server")
-    parser.add_argument("--host", default=os.getenv("FASTMCP_HOST", "127.0.0.1"))
+    parser.add_argument("--host", default=os.getenv("FASTMCP_HOST", "0.0.0.0"))
     parser.add_argument("--port", type=int, default=int(os.getenv("FASTMCP_PORT", "8000")))
     parser.add_argument(
         "--path",
@@ -597,6 +597,16 @@ def _parse_args() -> argparse.Namespace:
         help="SQLite database file path used by the global SQLiteUtils instance.",
     )
     return parser.parse_args()
+
+
+# Health Check
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request: Request) -> JSONResponse:
+    return JSONResponse({"status": "ok"}, 200)
 
 
 if __name__ == "__main__":

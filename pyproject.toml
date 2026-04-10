@@ -8,6 +8,7 @@ dependencies = [
     "colorlog>=6.10.1",
     "dotenv>=0.9.9",
     "fastmcp[tasks]>=3.2.2",
+    "ipython>=9.10.1",
     "langchain>=1.2.15",
     "langchain-core>=1.2.28",
     "langchain-google-genai>=4.2.1",
@@ -17,4 +18,5 @@ dependencies = [
     "langchain-openrouter>=0.2.1",
     "langgraph>=1.1.6",
     "loguru>=0.7.3",
+    "starlette>=1.0.0",
 ]

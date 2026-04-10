@@ -490,9 +490,19 @@ def path_info(path: str) -> dict[str, Any]:
     }
 
 
+# Health Check
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request: Request) -> JSONResponse:
+    return JSONResponse({"status": "ok"}, 200)
+
+
 if __name__ == "__main__":
     try:
-        mcp.run(transport="streamable-http", host="127.0.0.1", port=8005, stateless_http=True)
+        mcp.run(transport="streamable-http", host="0.0.0.0", port=8005, stateless_http=True)
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
     except Exception as e:

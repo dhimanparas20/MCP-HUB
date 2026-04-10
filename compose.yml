@@ -1,0 +1,56 @@
+# ----------------------------------------------------------------------------------
+# Use for local development where local code is mounted to the containers
+# -----------------------------------------------------------------------------------
+
+networks:
+  caddy:
+    driver: bridge
+
+services:
+
+  mcp1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mcp-hub:local
+    container_name: mcp1
+    restart: unless-stopped
+    command: [ "uv", "run", "--frozen", "--no-sync", "mcp_server.py" ]
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    networks:
+      - caddy
+    volumes:
+      - ./modules:/app/modules
+      - ./mcp_server.py:/app/mcp_server.py
+    healthcheck:
+      test: [ "CMD-SHELL", "test ! -f /tmp/drain && curl -f http://localhost:8000/health" ]
+      interval: 5m
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+      start_interval: 2s
+
+  mcp2:
+    image: mcp-hub:local
+    container_name: mcp2
+    command: [ "uv", "run", "--frozen", "--no-sync", "mcp_server2.py" ]
+    restart: unless-stopped
+    ports:
+      - "8005:8005"
+    env_file:
+      - .env
+    networks:
+      - caddy
+    volumes:
+      - ./modules:/app/modules
+      - ./mcp_server2.py:/app/mcp_server2.py
+    healthcheck:
+      test: [ "CMD-SHELL", "test ! -f /tmp/drain && curl -f http://localhost:8005/health" ]
+      interval: 5m
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+      start_interval: 2s
