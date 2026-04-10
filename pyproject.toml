@@ -5,8 +5,10 @@ description = "A SQLite MCP server for database operations"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
+    "aiohttp>=3.11.13",
     "colorlog>=6.10.1",
     "dotenv>=0.9.9",
+    "duckduckgo-mcp-server>=0.1.2",
     "fastmcp[tasks]>=3.2.2",
     "ipython>=9.10.1",
     "langchain>=1.2.15",
@@ -18,5 +20,9 @@ dependencies = [
     "langchain-openrouter>=0.2.1",
     "langgraph>=1.1.6",
     "loguru>=0.7.3",
+    "mcp-server-fetch>=2025.1.17",
+    "mcp-server-git>=2026.1.14",
+    "mcp-server-time>=2026.1.26",
+    "mcp-url-downloader>=0.1.0",
     "starlette>=1.0.0",
 ]

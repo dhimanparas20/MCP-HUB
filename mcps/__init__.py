@@ -9,6 +9,10 @@ MCP_TOOLS = {
         "url": "http://127.0.0.1:8005/mcp",  # FastMCP's default SSE endpoint
         "transport": "streamable-http",
     },
+    "downloader": {
+        "url": "http://127.0.0.1:8010/mcp",
+        "transport": "streamable-http",
+    },
     "ddg-search": {
         "command": "uvx",
         "transport": "stdio",
@@ -31,6 +35,11 @@ MCP_TOOLS = {
     "time": {
         "command": "uvx",
         "transport": "stdio",
-        "args": ["mcp-server-time"],  # Removed the broken flag
+        "args": ["mcp-server-time"],
     },
+    # "url-downloader": {
+    #     "command": "uvx",
+    #     "transport": "stdio",
+    #     "args": ["mcp-url-downloader", "--path", "/app/datastore"],
+    # },
 }
