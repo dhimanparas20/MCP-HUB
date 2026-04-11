@@ -22,8 +22,14 @@ RUN apt-get update && \
     && ln -sf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime \
     && echo "Asia/Kolkata" > /etc/timezone
 
-# Copy the uv and uvx binaries from the official uv image
+# Copy the uv and uvx binaries
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Copy Node.js, npm, and npx from the official Node image
+COPY --from=node:20-slim /usr/local/bin/node /usr/local/bin/
+COPY --from=node:20-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
+    ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
 # Set working directory
 WORKDIR /app

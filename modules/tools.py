@@ -5,6 +5,8 @@ from typing import List, Union, Optional, Dict, Any
 
 from dotenv import load_dotenv
 from langchain.tools import tool
+from langchain_community.tools.openweathermap.tool import OpenWeatherMapQueryRun
+from langchain_community.utilities import OpenWeatherMapAPIWrapper
 from pageindex import PageIndexClient
 
 from modules import get_logger
@@ -13,7 +15,6 @@ from tasks import (
     test_sleep_task,
     get_job_status,
     send_email_task,
-    test_schedule_task,
     schedule_task,
 )
 
@@ -204,6 +205,9 @@ def get_system_datetime_tool() -> Dict[str, Any]:
     }
 
 
+weather_wrapper = OpenWeatherMapAPIWrapper()
+weather_tool = OpenWeatherMapQueryRun(api_wrapper=weather_wrapper)
+
 # ============================================
 # Vectorless Tools (Background Tasks)
 # ============================================
@@ -223,4 +227,5 @@ def get_vectorless_tools() -> List:
         send_email_task_tool,
         schedule_task_tool,
         get_system_datetime_tool,
+        weather_tool,
     ]

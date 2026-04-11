@@ -25,6 +25,7 @@ Available tools:
   - MUST use this for ANY time-based activity - always fetch current time from this tool before calculating delays/schedules
   - Returns: datetime, iso, timestamp, timezone
 - **pageindex**: Direct access to PageIndex API for advanced indexing and querying operations.
+- **weather_tool**: Get weather information for a location
 
 Important - Background Tasks:
 - index_files, index_urls, sleep, send_email_task, and schedule_task are BACKGROUND TASKS that process asynchronously

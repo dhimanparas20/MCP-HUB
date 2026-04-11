@@ -46,4 +46,20 @@ MCP_TOOLS = {
         "url": "https://api.pageindex.ai/mcp",
         "headers": {"Authorization": f"Bearer {os.getenv("PAGE_INDEX_API_KEY")}"},
     },
+    # "openweather-mcp": {
+    #     "command": "uvx",
+    #     "transport": "stdio",
+    #     "args": ["openweather-mcp"],
+    #     "env": {"OPENWEATHER_API_KEY": "<open_weather_key>"},
+    # },
+    # "mongo-mcp": {
+    #     "command": "uvx",
+    #     "transport": "stdio",
+    #     "args": ["mongo-mcp"],
+    #     "env": {
+    #         "MONGODB_URI": "<mongo_db_uri>=",
+    #         # "MONGODB_DEFAULT_DB": "MONGODB_DEFAULT_DB",
+    #         # "LOG_LEVEL": "INFO"
+    #     },
+    # },
 }
