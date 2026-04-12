@@ -8,10 +8,10 @@ MCP_TOOLS = {
         "url": "http://mcp_sql:8000/mcp/",
         "transport": "streamable-http",
     },
-    "custom-fs": {
-        "url": "http://mcp_fs:8005/mcp",
-        "transport": "streamable-http",
-    },
+    # "custom-fs": {
+    #     "url": "http://mcp_fs:8005/mcp",
+    #     "transport": "streamable-http",
+    # },
     "downloader": {
         "url": "http://mcp_downloader:8010/mcp",
         "transport": "streamable-http",
