@@ -27,9 +27,6 @@ WORKDIR /app
 COPY ./pyproject.toml uv.lock ./
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv venv /app/.venv --python python3.13 && \
-    uv sync --frozen --no-dev
+    uv sync --frozen --no-dev --no-install-project
 
 EXPOSE 8001 8000 8005 8010
