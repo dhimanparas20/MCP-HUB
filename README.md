@@ -1,306 +1,436 @@
-# 🤖 MCP Hub - Universal AI Agent Platform
+# MCP Hub
 
 <div align="center">
 
-[![Docker](https://img.shields.io/docker/pulls/mcp-hub/mcp-hub?style=flat&color=blue)](https://hub.docker.com/r/mcp-hub/mcp-hub)
-[![Python](https://img.shields.io/badge/python-3.11+-green.svg)](https://www.python.org/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+**A Universal AI Agent Platform — Give Your LLM Hands to Interact with the Real World**
 
-**A powerful AI agent platform that connects LLMs to databases, filesystems, downloads, web search, document indexing, emails, and more - all through natural language!**
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?logo=langchain&logoColor=white)](https://www.langchain.com/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+[Quick Start](#-quick-start) · [Architecture](#-architecture) · [API Docs](#-api-reference) · [Contributing](#-contributing)
 
 </div>
 
 ---
 
-## ✨ What is MCP Hub?
+## What is MCP Hub?
 
-MCP Hub is an **AI agent framework** that gives your LLM (GPT-4o, Gemini, Groq, etc.) the ability to interact with the real world through tools. Think of it as giving your AI "hands" to:
+**MCP Hub** is an AI agent framework that connects Large Language Models (LLMs) to the real world through the **Model Context Protocol (MCP)** and **LangChain** tools.
 
-| Capability | Description |
-|------------|-------------|
-| 🗄️ **SQLite Database** | Create tables, run queries, insert/update/delete data |
-| 📁 **File System** | Read, write, copy, move, delete files and folders |
-| ⬇️ **Downloader** | Download files from any URL automatically |
-| 🔍 **Web Search** | Search DuckDuckGo for current information |
-| 🌐 **Web Fetch** | Fetch and summarize any webpage |
-| ⏰ **Time Zones** | Get current time for any timezone |
-| 📄 **Document Indexing** | Index PDFs, markdown, text files and search them with AI |
-| 📧 **Email** | Send emails via SMTP (queued for reliability) |
-| 🌤️ **Weather** | Get weather information for any location |
-| ⏳ **Task Scheduling** | Schedule any task to run after a delay or at a specific time |
+Think of it as giving your AI **hands** — instead of just generating text, it can now:
 
-### 💡 Example Conversations
+- Query and manage **SQLite databases**
+- Read, write, and organize **files**
+- **Download** files from the internet
+- **Search the web** for live information
+- **Send emails** and **schedule tasks**
+- **Index documents** for AI-powered semantic search
+- Check **weather** and **timezones**
+
+> **MCP (Model Context Protocol)** is an open standard that lets AI models securely connect to external data sources and tools. MCP Hub implements this standard using [FastMCP](https://github.com/jlowin/fastmcp) servers and LangChain adapters.
+
+### See It in Action
 
 ```
-You: "Create a table called users with columns name, age, email"
-AI:  Created table 'users' with columns: name (TEXT), age (INTEGER), email (TEXT)
+You: "Create a users table with name, age, and email columns"
+AI:  ✅ Created table 'users' with columns: name (TEXT), age (INTEGER), email (TEXT)
 
-You: "Show me all files in the datastore folder"
-AI:  Files in datastore:
-     ├── downloads/
-     ├── sqlite_ops.db
-     └── uploads/
+You: "Search the web for latest AI breakthroughs"
+AI:  🔍 Found 5 results... [summarizes live web search results]
 
-You: "Download this PDF https://example.com/report.pdf"
-AI:  Downloaded successfully to ./datastore/downloads/report.pdf
+You: "Download https://example.com/report.pdf"
+AI:  ⬇️ Downloaded report.pdf (2.4 MB) to ./datastore/downloads/
 
-You: "Send an email to boss@company.com saying project is complete"
-AI:  Email queued! Job ID: abc-123-xyz
+You: "Send an email to my boss saying the project is complete"
+AI:  📧 Email queued! Job ID: abc-123-xyz (check status anytime)
 ```
 
 ---
 
-## 🚀 Quick Start
+## Tech Stack
+
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| **Web Framework** | [FastAPI](https://fastapi.tiangolo.com/) | High-performance async API & web UI |
+| **AI Framework** | [LangChain](https://www.langchain.com/) + [LangGraph](https://langchain-ai.github.io/langgraph/) | LLM orchestration & agent logic |
+| **MCP Protocol** | [FastMCP](https://github.com/jlowin/fastmcp) + [langchain-mcp-adapters](https://github.com/langchain-ai/langchain-mcp-adapters) | Model Context Protocol servers |
+| **Background Jobs** | [Huey](https://huey.readthedocs.io/) + [Redis/Valkey](https://valkey.io/) | Async task queue & scheduling |
+| **LLM Providers** | OpenAI, Google Gemini, Groq, OpenRouter | Multi-provider AI model support |
+| **Database** | SQLite3 | Lightweight, serverless relational DB |
+| **Package Manager** | [uv](https://docs.astral.sh/uv/) | Ultra-fast Python package management |
+| **Container** | Docker + Docker Compose | Production-ready containerization |
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         USER INTERFACE                           │
+│              ┌─────────────────────────────────┐                │
+│              │   Dark-themed Chat UI (HTML/JS) │                │
+│              │   ├─ Real-time chat stream      │                │
+│              │   ├─ Syntax-highlighted code    │                │
+│              │   ├─ JSON pretty-printing       │                │
+│              │   └─ Toast notifications        │                │
+│              └─────────────────────────────────┘                │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │ HTTP/WebSocket
+┌──────────────────────────▼──────────────────────────────────────┐
+│                     FASTAPI APPLICATION (port 8001)              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
+│  │  /api/chat   │  │ /api/history │  │   /api/health        │  │
+│  │  POST        │  │ GET / POST   │  │   GET                │  │
+│  └──────────────┘  └──────────────┘  └──────────────────────┘  │
+│                           │                                     │
+│              ┌────────────▼────────────┐                        │
+│              │    MCPAgentModule       │                        │
+│              │  ┌───────────────────┐  │                        │
+│              │  │  System Prompt    │  │                        │
+│              │  │  Chat History     │  │                        │
+│              │  │  LLM Instance     │  │                        │
+│              │  └───────────────────┘  │                        │
+│              └────────────┬────────────┘                        │
+└───────────────────────────┼─────────────────────────────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+┌───────▼──────┐  ┌────────▼────────┐  ┌──────▼───────┐
+│  MCP Servers │  │  LangChain Tools │  │   LLM APIs   │
+│  (Tools)     │  │  (Background)    │  │  (Providers) │
+├──────────────┤  ├─────────────────┤  ├──────────────┤
+│ sqlite-local │  │ index_files     │  │ OpenAI       │
+│ downloader   │  │ index_urls      │  │ Google       │
+│ ddg-search   │  │ send_email_task │  │ Groq         │
+│ fetch        │  │ schedule_task   │  │ OpenRouter   │
+│ time         │  │ get_system_time │  └──────────────┘
+│ pageindex    │  │ weather_tool    │
+│ url-downloader│  │ file_management │
+└──────────────┘  └─────────────────┘
+        │                   │
+        └───────────┬───────┘
+                    │
+┌───────────────────▼──────────────────────┐
+│         BACKGROUND WORKER (Huey)         │
+│  ┌────────────────────────────────────┐  │
+│  │  Redis/Valkey Queue (port 6379)    │  │
+│  │  ├─ Document Indexing (PageIndex)  │  │
+│  │  ├─ Email Sending (SMTP)           │  │
+│  │  ├─ Task Scheduling (delay/ETA)    │  │
+│  │  └─ Sleep/Delay Tasks              │  │
+│  └────────────────────────────────────┘  │
+└──────────────────────────────────────────┘
+```
+
+### Data Flow
+
+1. **User** sends a message via the web UI or API
+2. **FastAPI** receives it and passes to `MCPAgentModule`
+3. **Agent** loads the system prompt, chat history, and available tools
+4. **LLM** reasons about which tools to call and in what order
+5. **Tools** execute — some are local (file ops), some call external MCP servers, some queue background jobs
+6. **Response** streams back to the user with results, job IDs for async tasks, or direct answers
+
+---
+
+## Quick Start
 
 ### Prerequisites
 
-- Docker & Docker Compose
-- Python 3.11+ (for local development)
+- [Docker](https://docs.docker.com/get-docker/) & [Docker Compose](https://docs.docker.com/compose/install/)
+- At least one LLM API key (OpenAI, Google, Groq, or OpenRouter)
 
-### Step 1: Clone & Setup
+### Step 1: Clone & Configure
 
 ```bash
 git clone https://github.com/your-repo/mcp-hub.git
 cd mcp-hub
-```
-
-### Step 2: Create Your `.env` File
-
-Copy the sample and configure:
-
-```bash
 cp .env.sample .env
 ```
 
-Edit `.env` with your API keys:
+Edit `.env` and add your API keys:
 
 ```bash
-# REQUIRED: Choose Your AI Provider (openai, google, openrouter, groq)
+# Choose your AI provider: openai | google | groq | openrouter
 MODEL_PROVIDER=openai
-
-# OpenAI
 OPENAI_API_KEY=sk-your-key-here
 OPENAI_MODEL=gpt-4o
 
-# GroQ (free, fast alternative)
-# MODEL_PROVIDER=groq
-# GROQ_API_KEY=gsk_your-key-here
-
-# Google Gemini
-# MODEL_PROVIDER=google
-# GOOGLE_API_KEY=your-key-here
-
-# OpenRouter (access to many models)
-# MODEL_PROVIDER=openrouter
-# OPEN_ROUTER_API_KEY=your-key-here
-
-# PageIndex (for document search)
+# Optional but recommended
 PAGE_INDEX_API_KEY=your-pageindex-key
-
-# Email (optional - for send_email_task)
 EMAIL_HOST_USER=your-email@gmail.com
 EMAIL_HOST_PASSWORD=your-app-password
-
-# Redis/Valkey
-REDIS_URL=redis://:testpass@valkey:6379/0
 ```
 
-### Step 3: Start with Docker
+### Step 2: Launch Everything
 
 ```bash
 docker compose up
 ```
 
-This starts all services:
-- **Valkey** (Redis) - Task queue (port 6379)
-- **SQLite MCP Server** - Database operations (port 8000)
-- **Downloader MCP Server** - File downloads (port 8010)
-- **Huey Worker** - Background task processor
-- **FastAPI App** - Web interface (port 8001)
+This starts 5 services:
 
-### Step 4: Open the Web App
+| Service | Port | What It Does |
+|---------|------|--------------|
+| `valkey` | 6379 | Redis-compatible task queue & cache |
+| `mcp_sql` | 8000 | SQLite MCP server (database ops) |
+| `mcp_downloader` | 8010 | File download MCP server |
+| `huey` | — | Background task worker |
+| `app` | 8001 | **Main FastAPI web app & chat UI** |
 
-```
-http://localhost:8001
+### Step 3: Open the App
+
+Navigate to **http://localhost:8001**
+
+You should see the MCP Hub chat interface with a status indicator showing **Online**.
+
+### Step 4: Try Your First Commands
+
+> 💡 Click any suggestion pill in the UI, or type:
+
+- `"What tools do you have?"`
+- `"Create a table called todos with title TEXT and done INTEGER"`
+- `"Search the web for Python 3.13 new features"`
+- `"What's the weather in Tokyo?"`
+
+---
+
+## Local Development (Without Docker)
+
+If you prefer running natively for development or debugging:
+
+### Prerequisites
+
+- Python 3.11–3.13
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) package manager
+- Redis or Valkey running locally
+
+### Setup
+
+```bash
+# Install dependencies
+uv sync
+
+# Activate virtual environment
+source .venv/bin/activate
+
+# Start Redis/Valkey (if not running)
+# docker run -d -p 6379:6379 --name valkey bitnami/valkey:latest
+
+# Start the SQLite MCP server (terminal 1)
+python -m mcps.mcp_sql
+
+# Start the Downloader MCP server (terminal 2)
+python -m mcps.mcp_downloader
+
+# Start the Huey worker (terminal 3)
+huey_consumer tasks.tasks.huey -k thread -w 2
+
+# Start the main app (terminal 4)
+uvicorn app:app --host 0.0.0.0 --port 8001 --reload
 ```
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 mcp-hub/
-├── app.py                    # FastAPI entry point
-├── compose.yml               # Docker compose configuration
-├── Dockerfile              # Container image definition
-├── pyproject.toml           # Python dependencies
-├── .env/.env.sample        # Environment configuration
+├── app.py                          # FastAPI entry point & API routes
+├── compose.yml                     # Docker Compose orchestration
+├── Dockerfile                      # Container image (Python 3.13 + uv)
+├── pyproject.toml                  # Python dependencies & project metadata
+├── .env / .env.sample              # Environment configuration
 │
-├── mcps/                   # MCP Servers
-│   ├── __init__.py         # MCP server configuration
-│   ├── mcp_sql.py         # SQLite MCP server
-│   ├── mcp_fs.py          # Filesystem MCP server
-│   └── mcp_downloader.py # Downloader MCP server
+├── mcps/                           # MCP Servers (Model Context Protocol)
+│   ├── __init__.py                 # MCP_TOOLS registry & configuration
+│   ├── mcp_sql.py                  # SQLite MCP server (port 8000)
+│   ├── mcp_fs.py                   # Filesystem MCP server (port 8005)
+│   └── mcp_downloader.py         # Downloader MCP server (port 8010)
 │
-├── modules/                 # Core AI modules
-│   ├── __init__.py        # Module exports
-│   ├── agent_mod.py       # MCP Agent orchestration
-│   ├── agent_utils.py    # LLM factory
-│   ├── tools.py          # LangChain tools
-│   ├── logger.py         # Logging utilities
-│   └── system_prompts/  # AI instructions
+├── modules/                        # Core application modules
+│   ├── __init__.py                 # Module exports
+│   ├── agent_mod.py                # MCPAgentModule: orchestrates LLM + tools
+│   ├── agent_utils.py              # LLM factory (OpenAI, Google, Groq, OpenRouter)
+│   ├── tools.py                    # LangChain tools (background tasks, weather, files)
+│   ├── logger.py                   # Colorized logging utility
+│   └── system_prompts/
+│       ├── general_prompt.py       # Main AI system instructions
+│       └── local_mcp_sqlit3_prompt.py  # SQLite-specific prompt
+│   └── sqlite3/
+│       ├── sqlite_1.py             # SQLiteUtils (used by MCP SQL server)
+│       ├── sqlite_2.py             # SQLiteManager (alternative impl)
+│       └── sqlite_3.py             # SQLiteDB (modern WAL + transactions)
 │
-├── tasks/                  # Background tasks (Huey)
-│   ├── __init__.py       # Task exports
-│   └── tasks.py         # Task definitions
+├── tasks/                          # Background task definitions (Huey)
+│   ├── __init__.py                 # Task exports
+│   └── tasks.py                    # index_documents, send_email, schedule, etc.
 │
-├── datastore/              # Data storage
-│   ├── internal/         # Internal data (SQLite, history)
-│   └── downloads/       # Downloaded files
+├── templates/
+│   └── index.html                  # Dark glassmorphism chat UI
 │
-└── templates/             # Web UI templates
+└── datastore/                      # Persistent data storage
+    ├── internal/                   # SQLite DB, chat history, logs
+    └── downloads/                  # Downloaded files
 ```
 
 ---
 
-## 🔧 Configuration
+## Configuration Reference
 
-### Supported AI Providers
+### Required Variables
 
-| Provider | Environment Variable | Notes |
-|----------|-----------------|-------|
-| **OpenAI** | `OPENAI_API_KEY` | Default - gpt-4o, gpt-4o-mini |
-| **Google** | `GOOGLE_API_KEY` | gemini-2.5-flash |
-| **Groq** | `GROQ_API_KEY` | Free, fast - llama-3.3-70b |
-| **OpenRouter** | `OPEN_ROUTER_API_KEY` | Access to 100+ models |
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `MODEL_PROVIDER` | LLM provider to use | `openai`, `google`, `groq`, `openrouter` |
+| `OPENAI_API_KEY` | OpenAI API key | `sk-...` |
+| `GOOGLE_API_KEY` | Google Gemini key | `...` |
+| `GROQ_API_KEY` | Groq API key | `gsk_...` |
+| `OPEN_ROUTER_API_KEY` | OpenRouter key | `sk-or-v1-...` |
+| `REDIS_URL` | Redis/Valkey connection URL | `redis://:testpass@valkey:6379/0` |
 
-### Model Configuration
+### Optional Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MODEL_TEMPERATURE` | Creativity/randomness (0–1) | `0.4` |
+| `MAX_TOKENS` | Max response length | `1500` |
+| `PAGE_INDEX_API_KEY` | PageIndex API for document search | — |
+| `EMAIL_HOST_USER` | SMTP email address | — |
+| `EMAIL_HOST_PASSWORD` | SMTP app password | — |
+| `OPENWEATHERMAP_API_KEY` | Weather API key | — |
+| `DATASTORE_DIR` | Root data directory | `./datastore` |
+| `SQLITE_DB_PATH` | SQLite database file path | `./datastore/internal/sqlite3.db` |
+
+### Provider-Specific Models
+
+| Provider | Default Model | Notes |
+|----------|--------------|-------|
+| **OpenAI** | `gpt-4o` | Most capable, reliable tool use |
+| **Google** | `gemini-2.5-flash` | Fast, good for coding |
+| **Groq** | `openai/gpt-oss-120b` | Free tier available, very fast |
+| **OpenRouter** | `baidu/ernie-4.5-21b-a3b` | Access to 100+ models |
+
+---
+
+## Complete Tool Catalog
+
+### MCP Servers (Real-Time Tools)
+
+These tools execute immediately and return results directly to the LLM.
+
+| Tool | Server | What It Does |
+|------|--------|--------------|
+| `sqlite-local` | `mcp_sql` | **Full SQLite CRUD**: list tables, create tables, insert/select/update/delete rows, raw SQL, indexes, vacuum |
+| `downloader` | `mcp_downloader` | Download files from URLs with progress tracking, batch downloads, URL metadata checking |
+| `ddg-search` | stdio | Web search via DuckDuckGo with region/safe-search config |
+| `fetch` | stdio | Fetch and extract text content from any webpage |
+| `time` | stdio | Get current time for any timezone |
+| `pageindex` | HTTP | Query indexed documents using semantic AI search |
+| `url-downloader` | stdio | Alternative downloader with custom output path |
+
+### LangChain Tools (Background & Utility)
+
+These tools may queue async jobs or perform utility functions.
+
+| Tool | Type | What It Does |
+|------|------|--------------|
+| `index_files` | Background | Index local files (PDF, MD, TXT, CSV) to PageIndex for AI search. Returns **job ID**. |
+| `index_urls` | Background | Index remote URLs to PageIndex. Returns **job ID**. |
+| `send_email_task` | Background | Queue email via SMTP. Returns **job ID**. |
+| `schedule_task` | Background | Schedule any Huey task to run after delay or at specific ETA. Returns **job ID**. |
+| `get_background_task_status` | Utility | Check status of any background task by job ID |
+| `get_all_tasks` | Utility | List all queued, scheduled, and completed tasks |
+| `get_system_datetime` | Utility | Get current system time (critical for scheduling) |
+| `weather_tool` | Utility | Get weather for any location via OpenWeatherMap |
+| `sleep` | Background | Queue a sleep/delay task for testing |
+| `file_management` | Utility | Read, write, copy, move, delete files via FileManagementToolkit |
+
+### SQLite Operations Detail
+
+The `sqlite-local` MCP server provides these specific operations:
+
+- `list_tables` — List all tables
+- `table_info` — Get schema for a table
+- `create_table` — Create with columns, primary key, unique constraints
+- `insert_rows` — Insert single or multiple rows
+- `select_rows` — Query with WHERE, ORDER BY, LIMIT, OFFSET, DISTINCT
+- `select_one_row` — Get first matching row
+- `update_rows` — Update with WHERE clause
+- `delete_rows` — Delete with WHERE clause
+- `upsert_row` — Insert or update on conflict
+- `count_rows` — Count with optional filters
+- `execute_sql` — Run raw SQL (SELECT, PRAGMA, INSERT, etc.)
+- `create_index` / `list_indexes` — Index management
+- `delete_table` / `rename_table` / `flush_database` — Schema changes
+- `vacuum_database` — Reclaim storage space
+- `active_database` — Show current DB path
+
+---
+
+## API Reference
+
+All endpoints return JSON. The web UI is served at the root path.
+
+| Endpoint | Method | Body / Params | Response | Description |
+|----------|--------|---------------|----------|-------------|
+| `/` | GET | — | HTML | Chat web interface |
+| `/ping` | GET | — | `{"status":"ok","agent_ready":true}` | Health check |
+| `/api/chat` | POST | `{"message":"..."}` | `{"response":"..."}` | Send a message to the AI agent |
+| `/api/history` | GET | — | `{"history":[...]}` | Get conversation history |
+| `/api/clear` | POST | — | `{"status":"ok"}` | Clear chat history |
+| `/api/health` | GET | — | `{"status":"healthy",...}` | Detailed health status |
+| `/docs` | GET | — | HTML | Auto-generated Swagger UI |
+
+### Example API Usage
 
 ```bash
-MODEL_PROVIDER=openai        # Provider choice
-MODEL_TEMPERATURE=0.4        # Creativity (0-1)
-MAX_TOKENS=1500              # Max response length
-OPENAI_MODEL=gpt-4o          # Model name
+# Chat with the agent
+curl -X POST http://localhost:8001/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What time is it in Tokyo?"}'
+
+# Get history
+curl http://localhost:8001/api/history
+
+# Clear history
+curl -X POST http://localhost:8001/api/clear
 ```
 
 ---
 
-## 🛠️ Available Tools
+## Extending MCP Hub
 
-### MCP Servers (via langchain-mcp-adapters)
+### Adding a Custom MCP Server
 
-| Tool | Description |
-|------|-------------|
-| `sqlite-local` | SQLite operations - CRUD on local database |
-| `downloader` | Download files from URLs |
-| `ddg-search` | DuckDuckGo web search |
-| `fetch` | Fetch web page content |
-| `time` | Get time for timezones |
-| `url-downloader` | Download to custom directory |
-| `pageindex` | Query indexed documents |
+Edit `mcps/__init__.py` and add to the `MCP_TOOLS` dictionary:
 
-### LangChain Tools (Background Tasks)
-
-| Tool | Description |
-|------|-------------|
-| `index_files` | Index local files to PageIndex |
-| `index_urls` | Index remote URLs to PageIndex |
-| `send_email_task` | Send email via SMTP |
-| `schedule_task` | Schedule tasks with delay/eta |
-| `get_background_task_status` | Check task status by job ID |
-| `get_all_tasks` | List all queued tasks |
-| `get_system_datetime` | Get current system time |
-| `weather_tool` | Get weather info |
-| `sleep` | Queue sleep task |
-
-### File Management Tools
-
-| Tool | Description |
-|------|-------------|
-| `read_file` | Read file contents |
-| `write_file` | Write content to file |
-| `copy_file` | Copy files |
-| `move_file` | Move files |
-| `delete_file` | Delete files |
-| `list_directory` | List directory contents |
-| `make_directory` | Create directories |
-| `move_directory` | Move directories |
-
----
-
-## 🐳 Docker Services
-
-| Service | Port | Description |
-|--------|------|-------------|
-| valkey | 6379 | Redis task queue |
-| mcp_sql | 8000 | SQLite MCP server |
-| mcp_downloader | 8010 | Downloader MCP server |
-| huey | - | Background worker |
-| app | 8001 | FastAPI web app |
-
-### Useful Docker Commands
-
-```bash
-# Start everything
-docker compose up
-
-# Start in background
-docker compose up -d
-
-# View logs
-docker compose logs -f
-
-# Stop everything
-docker compose down
-
-# Rebuild containers
-docker compose build --no-cache
-```
-
----
-
-## 🌐 API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Web UI |
-| `/ping` | GET | Health check |
-| `/api/chat` | POST | Send chat message |
-| `/api/history` | GET | Get chat history |
-| `/api/clear` | POST | Clear history |
-| `/api/health` | GET | Detailed health |
-| `/docs` | GET | Swagger UI |
-
----
-
-## 🧩 Adding Custom MCP Servers
-
-MCP servers are configured in `mcps/__init__.py`:
-
-### HTTP-based Server
-
+**HTTP-based server:**
 ```python
-MCP_TOOLS = {
-    "my-server": {
-        "url": "http://127.0.0.1:9000/mcp/",
-        "transport": "streamable-http",
-    },
+"my-server": {
+    "url": "http://127.0.0.1:9000/mcp/",
+    "transport": "streamable-http",
 }
 ```
 
-### STDIO-based Server (uv)
-
+**STDIO-based server (via uv):**
 ```python
-MCP_TOOLS = {
-    "my-uvx-server": {
-        "command": "uv",
-        "transport": "stdio",
-        "args": ["run", "package-name"],
-    },
+"my-uvx-server": {
+    "command": "uv",
+    "transport": "stdio",
+    "args": ["run", "package-name"],
 }
 ```
 
-### Custom LangChain Tool
+Restart the app container to pick up changes:
+```bash
+docker compose restart app
+```
+
+### Adding a Custom LangChain Tool
 
 Edit `modules/tools.py`:
 
@@ -309,68 +439,142 @@ from langchain.tools import tool
 
 @tool("my_awesome_tool")
 def my_awesome_tool(param: str) -> dict:
-    """Description for the AI when to use this tool."""
-    return {"result": "success"}
+    """Description for the AI — this tells the LLM when to use this tool."""
+    return {"result": "success", "param": param}
 ```
 
-Add to `get_vectorless_tools()` in the same file.
+Then add it to `get_vectorless_tools()` in the same file.
+
+### Adding a New Huey Background Task
+
+Edit `tasks/tasks.py`:
+
+```python
+@huey.task(retries=3, retry_delay=5)
+def my_background_task(data: str) -> str:
+    logger.info(f"Processing: {data}")
+    # Do work here...
+    return "done"
+```
+
+Export it in `tasks/__init__.py` and register it in `schedule_task()`'s `task_map` if you want it schedulable.
 
 ---
 
-## 🔒 Security Notes
+## Docker Operations
 
-- **NEVER** commit `.env` to git (it's in `.gitignore`)
-- Store API keys securely
-- The container runs in an isolated network
-- Database stored locally in `datastore/`
-- Use strong passwords for Redis in production
+```bash
+# Start all services
+docker compose up
+
+# Start in background (detached)
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# View logs for a specific service
+docker compose logs -f app
+
+# Stop everything
+docker compose down
+
+# Rebuild after dependency changes
+docker compose build --no-cache
+
+# Restart a single service
+docker compose restart app
+```
 
 ---
 
-## 🤔 Troubleshooting
+## Troubleshooting
 
 ### "Connection refused" errors
+
 ```bash
-# Check all containers running
+# Check which containers are running
 docker compose ps
 
-# Check logs for specific service
+# Check a specific service's logs
 docker compose logs mcp_sql
+docker compose logs huey
 ```
 
 ### "API key not found"
+
 ```bash
-# Verify .env file
+# Verify .env file exists and has keys
 cat .env
 
-# Restart after adding keys
-docker compose restart
+# Restart after editing .env
+docker compose down && docker compose up -d
 ```
 
-### "Tool not found"
-- Check tool in `mcps/__init__.py` or `modules/tools.py`
-- Rebuild: `docker compose build`
-- Restart: `docker compose down && docker compose up`
+### "Tool not found" or MCP errors
+
+- Verify the tool is registered in `mcps/__init__.py` or `modules/tools.py`
+- Rebuild containers: `docker compose build --no-cache`
+- Check MCP server health: `curl http://localhost:8000/health`
 
 ### "Redis connection failed"
-- Check Valkey service: `docker compose logs valkey`
-- Verify REDIS_URL in `.env`
+
+```bash
+# Check Valkey status
+docker compose logs valkey
+
+# Verify REDIS_URL matches valkey password in compose.yml
+docker compose exec valkey valkey-cli -a testpass ping
+```
+
+### Background tasks never complete
+
+- Ensure the `huey` worker container is running: `docker compose ps huey`
+- Check Huey logs: `docker compose logs huey`
+- Verify Redis URL in `.env` is correct
 
 ---
 
-## 🤝 Contributing
+## Security Notes
 
-1. Fork the repo
-2. Create a feature branch
-3. Make your changes
-4. Submit a PR!
-
----
-
-## 📝 License
-
-MIT License - see [LICENSE](LICENSE) file.
+- **Never commit `.env`** — it's in `.gitignore` by default
+- Store API keys securely; rotate them regularly
+- The app container runs in an isolated Docker network (`caddy`)
+- Database is stored locally in `datastore/` (add to backups)
+- File system access is sandboxed to `DATASTORE_DIR`
+- Use strong Redis passwords in production (change `testpass` in `compose.yml`)
 
 ---
 
-**Built with ❤️ using FastMCP, LangChain, FastAPI, and Huey**
+## Contributing
+
+We welcome contributions! Here's how to get started:
+
+1. **Fork** the repository
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Make your changes** with clear, concise code
+4. **Test locally** using the Docker setup
+5. **Submit a Pull Request** with a detailed description
+
+### Code Style
+
+- Follow PEP 8 conventions
+- Use type hints where practical
+- Add docstrings to public functions
+- Keep functions focused and modular
+
+---
+
+## License
+
+[MIT License](LICENSE) — Built with FastMCP, LangChain, FastAPI, and Huey.
+
+---
+
+<div align="center">
+
+**Made with curiosity and caffeine**
+
+If MCP Hub helps you build something cool, give it a star!
+
+</div>
