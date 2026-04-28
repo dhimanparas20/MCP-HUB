@@ -55,7 +55,7 @@ class MCPAgentModule:
 
     async def init(
         self,
-        model_provider: Literal["openai", "google", "openrouter", "groq"] = os.getenv("MODEL_PROVIDER"),
+        model_provider: Literal["openai", "google", "openrouter", "groq", "nvidia"] = os.getenv("MODEL_PROVIDER"),
         model_name: str = os.getenv("MODEL"),
         model_temperature: Optional[float] = os.getenv("MODEL_TEMPERATURE"),
         max_tokens: Optional[int] = os.getenv("MAX_TOKENS"),

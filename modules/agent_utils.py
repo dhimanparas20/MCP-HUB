@@ -42,13 +42,19 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {
         model_env="GROQ_MODEL",
         api_key_env="GROQ_API_KEY",
     ),
+    "nvidia": ModelConfig(
+        module_name="langchain_nvidia_ai_endpoints",
+        class_name="ChatNVIDIA",
+        model_env="NVIDIA_MODEL",
+        api_key_env="NVIDIA_API_KEY",
+    ),
 }
 
 
 def create_llm(
     model_name: str | None = None,
     api_key: Optional[str] = None,
-    model_provider: Literal["openai", "google", "openrouter", "groq"] = "openai",
+    model_provider: Literal["openai", "google", "openrouter", "groq", "nvidia"] = "openai",
     model_temperature: Optional[float] = None,
     max_tokens: Optional[int] = None,
 ):

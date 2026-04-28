@@ -58,7 +58,7 @@ AI:  📧 Email queued! Job ID: abc-123-xyz (check status anytime)
 | **AI Framework** | [LangChain](https://www.langchain.com/) + [LangGraph](https://langchain-ai.github.io/langgraph/) | LLM orchestration & agent logic |
 | **MCP Protocol** | [FastMCP](https://github.com/jlowin/fastmcp) + [langchain-mcp-adapters](https://github.com/langchain-ai/langchain-mcp-adapters) | Model Context Protocol servers |
 | **Background Jobs** | [Huey](https://huey.readthedocs.io/) + [Redis/Valkey](https://valkey.io/) | Async task queue & scheduling |
-| **LLM Providers** | OpenAI, Google Gemini, Groq, OpenRouter | Multi-provider AI model support |
+| **LLM Providers** | OpenAI, Google Gemini, Groq, OpenRouter, NVIDIA | Multi-provider AI model support |
 | **Database** | SQLite3 | Lightweight, serverless relational DB |
 | **Package Manager** | [uv](https://docs.astral.sh/uv/) | Ultra-fast Python package management |
 | **Container** | Docker + Docker Compose | Production-ready containerization |
@@ -106,8 +106,8 @@ AI:  📧 Email queued! Job ID: abc-123-xyz (check status anytime)
 │ downloader   │  │ index_urls      │  │ Google       │
 │ ddg-search   │  │ send_email_task │  │ Groq         │
 │ fetch        │  │ schedule_task   │  │ OpenRouter   │
-│ time         │  │ get_system_time │  └──────────────┘
-│ pageindex    │  │ weather_tool    │
+│ time         │  │ get_system_time │  │ NVIDIA       │
+│ pageindex    │  │ weather_tool    │  └──────────────┘
 │ url-downloader│  │ file_management │
 └──────────────┘  └─────────────────┘
         │                   │
@@ -141,7 +141,7 @@ AI:  📧 Email queued! Job ID: abc-123-xyz (check status anytime)
 ### Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) & [Docker Compose](https://docs.docker.com/compose/install/)
-- At least one LLM API key (OpenAI, Google, Groq, or OpenRouter)
+- At least one LLM API key (OpenAI, Google, Groq, OpenRouter, or NVIDIA)
 
 ### Step 1: Clone & Configure
 
@@ -154,7 +154,7 @@ cp .env.sample .env
 Edit `.env` and add your API keys:
 
 ```bash
-# Choose your AI provider: openai | google | groq | openrouter
+# Choose your AI provider: openai | google | groq | openrouter | nvidia
 MODEL_PROVIDER=openai
 OPENAI_API_KEY=sk-your-key-here
 OPENAI_MODEL=gpt-4o
@@ -285,11 +285,12 @@ mcp-hub/
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `MODEL_PROVIDER` | LLM provider to use | `openai`, `google`, `groq`, `openrouter` |
+| `MODEL_PROVIDER` | LLM provider to use | `openai`, `google`, `groq`, `openrouter`, `nvidia` |
 | `OPENAI_API_KEY` | OpenAI API key | `sk-...` |
 | `GOOGLE_API_KEY` | Google Gemini key | `...` |
 | `GROQ_API_KEY` | Groq API key | `gsk_...` |
 | `OPEN_ROUTER_API_KEY` | OpenRouter key | `sk-or-v1-...` |
+| `NVIDIA_API_KEY` | NVIDIA AI Endpoints key | `nvapi-...` |
 | `REDIS_URL` | Redis/Valkey connection URL | `redis://:testpass@valkey:6379/0` |
 
 ### Optional Variables
@@ -313,6 +314,7 @@ mcp-hub/
 | **Google** | `gemini-2.5-flash` | Fast, good for coding |
 | **Groq** | `openai/gpt-oss-120b` | Free tier available, very fast |
 | **OpenRouter** | `baidu/ernie-4.5-21b-a3b` | Access to 100+ models |
+| **NVIDIA** | `qwen/qwen3.5-122b-a10b` | NVIDIA AI Endpoints |
 
 ---
 

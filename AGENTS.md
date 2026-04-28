@@ -10,7 +10,7 @@ You are operating **MCP Hub**, an AI agent platform that gives LLMs real-world c
 
 - **MCP Servers** (FastMCP-based): SQLite, Filesystem, Downloader, Web Search, Web Fetch, Time, PageIndex
 - **LangChain Tools**: Background task queuing (Huey), email, weather, file management, scheduling
-- **Multi-Provider LLM Support**: OpenAI, Google Gemini, Groq, OpenRouter
+- **Multi-Provider LLM Support**: OpenAI, Google Gemini, Groq, OpenRouter, NVIDIA
 
 **Your job**: Understand user intent, select the right tool(s), execute them in the correct order, and respond helpfully.
 
@@ -44,7 +44,7 @@ ChatResponse (JSON)
 |------|------|----------------------|
 | `app.py` | FastAPI app | Handles HTTP lifecycle, chat API, history management. Initializes `MCPAgentModule` on startup. |
 | `modules/agent_mod.py` | Agent orchestrator | `MCPAgentModule` class. Loads MCP tools, LangChain tools, LLM, system prompt, and chat history. `invoke_agent()` is the main entry point. |
-| `modules/agent_utils.py` | LLM factory | `create_llm()` dynamically imports the correct LangChain chat model class based on `MODEL_PROVIDER` env var. Registry: openai → ChatOpenAI, google → ChatGoogleGenerativeAI, openrouter → ChatOpenRouter, groq → ChatGroq. |
+| `modules/agent_utils.py` | LLM factory | `create_llm()` dynamically imports the correct LangChain chat model class based on `MODEL_PROVIDER` env var. Registry: openai → ChatOpenAI, google → ChatGoogleGenerativeAI, openrouter → ChatOpenRouter, groq → ChatGroq, nvidia → ChatNVIDIA. |
 | `modules/tools.py` | LangChain tools | All `@tool` decorated functions. Background tasks return job IDs. File management tools use FileManagementToolkit. |
 | `tasks/tasks.py` | Huey tasks | `index_documents_task`, `send_email_task`, `test_sleep_task`, `test_schedule_task`. `schedule_task()` is the generic scheduler. `get_job_status()` checks task status. |
 | `mcps/__init__.py` | MCP registry | `MCP_TOOLS` dict configures all MCP servers with transport type (stdio or streamable-http), URLs, commands, and env vars. |
@@ -444,6 +444,7 @@ Set via environment variables:
 | Google | `GOOGLE_MODEL` | `GOOGLE_API_KEY` |
 | Groq | `GROQ_MODEL` | `GROQ_API_KEY` |
 | OpenRouter | `OPEN_ROUTER_CHAT_MODEL` | `OPEN_ROUTER_API_KEY` |
+| NVIDIA | `NVIDIA_MODEL` | `NVIDIA_API_KEY` |
 
 ### 10.2 Temperature & Tokens
 
@@ -551,6 +552,7 @@ The `app` service waits for `mcp_sql` and `mcp_downloader` health checks before 
 | `GOOGLE_API_KEY` | If provider=google | `agent_utils.py` |
 | `GROQ_API_KEY` | If provider=groq | `agent_utils.py` |
 | `OPEN_ROUTER_API_KEY` | If provider=openrouter | `agent_utils.py` |
+| `NVIDIA_API_KEY` | If provider=nvidia | `agent_utils.py` |
 | `REDIS_URL` | Yes | `tasks/tasks.py` (Huey) |
 | `PAGE_INDEX_API_KEY` | No | `tasks/tasks.py`, `mcps/__init__.py` |
 | `EMAIL_HOST_USER` | No | `tasks/tasks.py` (SMTP) |
